@@ -32,6 +32,9 @@ backend/ml/models/*.pkl
 Thumbs.db
 .DS_Store
 
+# ── Large media files ──
+*.mp4
+
 # ── Gemini / Agent ──
 .gemini/
 .agent/
