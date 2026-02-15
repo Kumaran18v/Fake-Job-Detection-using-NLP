@@ -1,0 +1,353 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════
+   JOBCHECK — Brutalist-Refined Security Design System
+   Charcoal + Off-White + Signal Red + Muted Teal
+   ═══════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* Core Palette */
+    --black: #111111;
+    --charcoal: #1a1a1a;
+    --charcoal-warm: #1e1d1b;
+    --charcoal-light: #2a2926;
+    --charcoal-lighter: #3a3835;
+    --bone: #e8e0d4;
+    --bone-dim: #b8b0a4;
+    --bone-muted: #8a8278;
+    --off-white: #f0ebe3;
+
+    /* Accents */
+    --red: #e63946;
+    --red-dim: rgba(230, 57, 70, 0.15);
+    --red-glow: rgba(230, 57, 70, 0.08);
+    --teal: #5f9ea0;
+    --teal-dim: rgba(95, 158, 160, 0.15);
+    --teal-glow: rgba(95, 158, 160, 0.08);
+    --green: #4a9e6e;
+    --green-dim: rgba(74, 158, 110, 0.15);
+
+    /* Typography */
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Barlow', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Grain */
+    --grain-opacity: 0.03;
+  }
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: var(--charcoal-warm);
+    color: var(--bone);
+    font-family: var(--font-body);
+    font-weight: 400;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Grain overlay — applied via pseudo-element on body */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  ::selection {
+    background: var(--red);
+    color: var(--off-white);
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--charcoal);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--charcoal-lighter);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--bone-muted);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 0.95;
+    color: var(--off-white);
+  }
+}
+
+@layer components {
+
+  /* ── Buttons ──────────────────────────── */
+  .btn-primary {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 14px 32px;
+    background: var(--off-white);
+    color: var(--charcoal);
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+  }
+
+  .btn-primary:hover {
+    background: var(--bone);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-danger {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 14px 32px;
+    background: var(--red);
+    color: var(--off-white);
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-danger:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+
+  .btn-outline {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 12px 28px;
+    background: transparent;
+    color: var(--bone);
+    border: 1px solid var(--charcoal-lighter);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-outline:hover {
+    border-color: var(--bone-muted);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  /* ── Inputs ──────────────────────────── */
+  .input-field {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--charcoal);
+    border: 1px solid var(--charcoal-lighter);
+    color: var(--off-white);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+    outline: none;
+  }
+
+  .input-field:focus {
+    border-color: var(--bone-muted);
+  }
+
+  .input-field::placeholder {
+    color: var(--bone-muted);
+    font-size: 0.9rem;
+  }
+
+  /* ── Cards ───────────────────────────── */
+  .card {
+    background: var(--charcoal);
+    border: 1px solid var(--charcoal-lighter);
+  }
+
+  .card-elevated {
+    background: var(--charcoal-light);
+    border: 1px solid var(--charcoal-lighter);
+  }
+
+  /* ── Verdict Stamp ───────────────────── */
+  .verdict-stamp {
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 8vw, 6rem);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1;
+    padding: 12px 24px;
+    border: 4px solid currentColor;
+    display: inline-block;
+    transform: rotate(-3deg);
+  }
+
+  .verdict-fraud {
+    color: var(--red);
+    border-color: var(--red);
+    text-shadow: 0 0 40px rgba(230, 57, 70, 0.3);
+  }
+
+  .verdict-legit {
+    color: var(--teal);
+    border-color: var(--teal);
+    text-shadow: 0 0 40px rgba(95, 158, 160, 0.3);
+  }
+
+  /* ── Mono Label ──────────────────────── */
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--bone-muted);
+    text-transform: uppercase;
+  }
+
+  /* ── Divider ─────────────────────────── */
+  .divider {
+    height: 1px;
+    background: var(--charcoal-lighter);
+    width: 100%;
+  }
+
+  /* ── Tag/Badge ───────────────────────── */
+  .tag-red {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--red-dim);
+    color: var(--red);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .tag-teal {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--teal-dim);
+    color: var(--teal);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .tag-green {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--green-dim);
+    color: var(--green);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── Video Background Container ────── */
+  .video-bg-container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    z-index: 0;
+  }
+
+  .video-bg-container video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+  }
+
+  .video-bg-container::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(30, 29, 27, 0.75);
+  }
+
+  /* ── Scan Line Animation ─────────────── */
+  @keyframes scanline {
+    0% {
+      transform: translateY(-100%);
+    }
+
+    100% {
+      transform: translateY(100vh);
+    }
+  }
+
+  @keyframes stamp-in {
+    0% {
+      opacity: 0;
+      transform: rotate(-3deg) scale(1.5);
+    }
+
+    60% {
+      opacity: 1;
+      transform: rotate(-3deg) scale(0.95);
+    }
+
+    100% {
+      opacity: 1;
+      transform: rotate(-3deg) scale(1);
+    }
+  }
+
+  @keyframes blink {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0;
+    }
+  }
+}

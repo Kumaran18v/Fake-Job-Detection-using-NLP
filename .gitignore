@@ -1,0 +1,37 @@
+# ── Python / Backend ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+*.db
+*.sqlite3
+.env
+venv/
+env/
+
+# ── Node / Frontend ──
+node_modules/
+.next/
+out/
+.env.local
+.env*.local
+npm-debug.log*
+
+# ── ML Models (large binary files) ──
+backend/ml/models/*.pkl
+
+# ── IDE / OS ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+
+# ── Gemini / Agent ──
+.gemini/
+.agent/
