@@ -94,9 +94,12 @@ Fake Job detection using NLP/
 ```bash
 git clone https://github.com/Kumaran18v/Fake-Job-Detection.git
 cd Fake-Job-Detection
+cd "Fake Job Detection using NLP"
 ```
 
 ### 2. Backend Setup
+
+Open a terminal and navigate to the backend folder:
 
 ```bash
 cd backend
@@ -113,45 +116,38 @@ pip install -r requirements.txt
 python -c "import nltk; nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('punkt_tab')"
 ```
 
-### 3. Train the ML Model
+### 3. Train the ML Model & Seed Database
+
+Ensure your virtual environment is active inside the `backend` directory:
 
 ```bash
-# From the backend/ directory
+# Train the Multi-Model NLP Pipeline (generates .pkl files)
 python -m ml.train
-```
 
-This will:
-- Load the dataset (or generate a synthetic one if not found)
-- Train Logistic Regression, Random Forest, and Gradient Boosting models
-- Save the best model to `ml/models/`
-
-### 4. Seed the Database (Optional)
-
-```bash
+# Seed the Database with sample users and predictions (Optional)
 python seed_data.py
 ```
+*(Default test account: `testuser` / `test123`. Default Admin: `admin` / `admin123`)*
 
-Creates a default admin user and sample predictions:
-- **Admin:** `admin` / `admin123`
-- **User:** `testuser` / `test123`
-
-### 5. Start the Backend Server
+### 4. Start the Backend Server
 
 ```bash
+# Ensure you are still in the backend directory with the venv active
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Backend will be running at `http://localhost:8000`  
 API docs available at `http://localhost:8000/docs`
 
-### 6. Frontend Setup
+### 5. Frontend Setup
 
-Open a **new terminal**:
+Open a **new, separate terminal** and navigate to the frontend folder:
 
 ```bash
-cd frontend
+# From the root of the repository
+cd "Fake Job Detection using NLP/frontend"
 
-# Install dependencies
+# Install Node.js dependencies
 npm install
 
 # Start development server
