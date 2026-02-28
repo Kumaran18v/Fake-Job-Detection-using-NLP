@@ -1,11 +1,11 @@
 {
-  "version": "v1_20260228_113103",
+  "version": "v1_20260228_115352",
   "model_name": "Logistic Regression",
   "accuracy": 1.0,
   "precision": 1.0,
   "recall": 1.0,
   "f1_score": 1.0,
-  "trained_at": "2026-02-28T06:01:03.473298+00:00",
+  "trained_at": "2026-02-28T06:23:52.926766+00:00",
   "dataset_size": 2000,
   "features": "TF-IDF (max_features=10000, ngram_range=(1,2))",
   "all_results": [

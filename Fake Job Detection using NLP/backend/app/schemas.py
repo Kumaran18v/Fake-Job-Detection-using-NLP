@@ -78,6 +78,7 @@ class StatsResponse(BaseModel):
     total_flagged: int
     daily_stats: List[dict]
     model_info: Optional[dict] = None
+    model_config = {'protected_namespaces': ()}
 
 
 # ── Retrain Schemas ───────────────────────────────
@@ -87,3 +88,4 @@ class RetrainResponse(BaseModel):
     version: str
     accuracy: float
     f1_score: float
+    model_config = {'protected_namespaces': ()}
