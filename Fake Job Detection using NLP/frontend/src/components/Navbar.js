@@ -4,112 +4,130 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { useTheme } from '@/context/ThemeContext';
 
 export default function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
     const { user, logout } = useAuth();
-    const { theme, toggle } = useTheme();
     const [scrolled, setScrolled] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     useEffect(() => {
-        const handler = () => setScrolled(window.scrollY > 20);
+        const handler = () => setScrolled(window.scrollY > 10);
         window.addEventListener('scroll', handler);
         return () => window.removeEventListener('scroll', handler);
     }, []);
 
     const isActive = (path) => pathname === path;
 
+    const navLinks = [
+        { href: '/', label: 'Home' },
+        { href: '/analyze', label: 'Analyze' },
+        ...(user ? [{ href: '/dashboard', label: 'Dashboard' }] : []),
+        ...(user?.role === 'admin' ? [{ href: '/admin', label: 'Admin' }] : []),
+    ];
+
     return (
-        <nav
-            style={{
-                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-                padding: '0 40px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                background: scrolled ? 'var(--nav-bg)' : 'transparent',
-                backdropFilter: scrolled ? 'blur(10px)' : 'none',
-                borderBottom: scrolled ? '1px solid var(--charcoal-lighter)' : '1px solid transparent',
-                transition: 'all 0.3s ease',
-            }}
-        >
+        <nav style={{
+            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+            padding: '0 clamp(16px, 4vw, 40px)', height: 64,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: scrolled ? 'var(--nav-bg)' : 'rgba(255,255,255,0.8)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
+            transition: 'all 0.3s ease',
+        }}>
             {/* Logo */}
             <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 8, height: 8, background: 'var(--red)', transform: 'rotate(45deg)' }} />
+                {/* Shield + Magnifying Glass Icon */}
+                <div style={{
+                    width: 34, height: 34, borderRadius: 8,
+                    background: 'linear-gradient(135deg, var(--primary), var(--primary-light))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'white', fontSize: '1rem',
+                }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <circle cx="12" cy="11" r="3" />
+                    </svg>
+                </div>
                 <span style={{
                     fontFamily: 'var(--font-display)',
-                    fontSize: '1.4rem',
-                    letterSpacing: '0.1em',
-                    color: (pathname === '/' && !scrolled) ? '#f0ebe3' : 'var(--off-white)'
+                    fontSize: '1.2rem',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    letterSpacing: '-0.01em',
                 }}>
-                    JOBCHECK
+                    JobCheck
                 </span>
             </Link>
 
-            {/* Nav Links */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-                {[
-                    { href: '/', label: 'HOME' },
-                    { href: '/analyze', label: 'ANALYZE' },
-                    ...(user ? [{ href: '/dashboard', label: 'DASHBOARD' }] : []),
-                    ...(user?.role === 'admin' ? [{ href: '/admin', label: 'ADMIN' }] : []),
-                ].map(({ href, label }) => (
+            {/* Desktop Nav Links */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {navLinks.map(({ href, label }) => (
                     <Link
                         key={href} href={href}
                         style={{
-                            textDecoration: 'none', fontFamily: 'var(--font-body)',
-                            fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.12em',
-                            color: (pathname === '/' && !scrolled)
-                                ? (isActive(href) ? '#ffffff' : 'rgba(255,255,255,0.7)')
-                                : (isActive(href) ? 'var(--off-white)' : 'var(--bone-muted)'),
-                            borderBottom: isActive(href) ? '1px solid var(--red)' : '1px solid transparent',
-                            paddingBottom: 2, transition: 'all 0.2s ease',
+                            textDecoration: 'none',
+                            fontFamily: 'var(--font-body)',
+                            fontSize: '0.875rem',
+                            fontWeight: 500,
+                            color: isActive(href) ? 'var(--primary)' : 'var(--text-secondary)',
+                            padding: '8px 16px',
+                            borderRadius: 'var(--radius-md)',
+                            background: isActive(href) ? 'var(--primary-lighter)' : 'transparent',
+                            transition: 'all 0.2s ease',
                         }}
                     >
                         {label}
                     </Link>
                 ))}
 
-                {/* Theme Toggle */}
-                <button
-                    onClick={toggle}
-                    title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                    style={{
-                        background: 'none', border: (pathname === '/' && !scrolled) ? '1px solid rgba(255,255,255,0.3)' : '1px solid var(--charcoal-lighter)',
-                        color: (pathname === '/' && !scrolled) ? '#b8b0a4' : 'var(--bone-muted)', cursor: 'pointer', padding: '5px 10px',
-                        fontFamily: 'var(--font-mono)', fontSize: '0.7rem',
-                        transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: 4,
-                    }}
-                    onMouseEnter={e => e.target.style.borderColor = 'var(--teal)'}
-                    onMouseLeave={e => e.target.style.borderColor = 'var(--charcoal-lighter)'}
-                >
-                    {theme === 'dark' ? '☀' : '☾'}
-                </button>
+                <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 8px' }} />
 
                 {user ? (
-                    <button
-                        onClick={() => { logout(); router.push('/'); }}
-                        style={{
-                            fontFamily: 'var(--font-mono)', fontSize: '0.7rem', fontWeight: 500,
-                            fontFamily: 'var(--font-mono)', fontSize: '0.7rem', fontWeight: 500,
-                            letterSpacing: '0.06em',
-                            color: (pathname === '/' && !scrolled) ? '#b8b0a4' : 'var(--bone-muted)',
-                            background: 'none',
-                            border: (pathname === '/' && !scrolled) ? '1px solid rgba(255,255,255,0.3)' : '1px solid var(--charcoal-lighter)',
-                            padding: '6px 16px',
-                            cursor: 'pointer', textTransform: 'uppercase', transition: 'all 0.2s ease',
-                        }}
-                        onMouseEnter={e => e.target.style.borderColor = 'var(--red)'}
-                        onMouseLeave={e => e.target.style.borderColor = 'var(--charcoal-lighter)'}
-                    >
-                        EXIT
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: '0.78rem',
+                            color: 'var(--text-muted)',
+                            padding: '4px 10px',
+                            background: 'var(--bg-subtle)',
+                            borderRadius: 'var(--radius-sm)',
+                        }}>
+                            {user.username}
+                        </span>
+                        <button
+                            onClick={() => { logout(); router.push('/'); }}
+                            style={{
+                                fontFamily: 'var(--font-body)',
+                                fontSize: '0.875rem',
+                                fontWeight: 500,
+                                color: 'var(--text-secondary)',
+                                background: 'none',
+                                border: '1px solid var(--border)',
+                                borderRadius: 'var(--radius-md)',
+                                padding: '8px 16px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                            }}
+                        >
+                            Sign Out
+                        </button>
+                    </div>
                 ) : (
                     <Link href="/login" style={{
-                        fontFamily: 'var(--font-body)', fontSize: '0.75rem', fontWeight: 600,
-                        letterSpacing: '0.1em', color: 'var(--charcoal)', background: 'var(--off-white)',
-                        padding: '8px 20px', textDecoration: 'none', textTransform: 'uppercase', transition: 'all 0.15s ease',
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        color: 'var(--text-inverse)',
+                        background: 'var(--primary)',
+                        padding: '8px 20px',
+                        borderRadius: 'var(--radius-md)',
+                        textDecoration: 'none',
+                        transition: 'all 0.2s ease',
                     }}>
-                        ACCESS
+                        Sign In
                     </Link>
                 )}
             </div>
