@@ -3,7 +3,7 @@ import ClientLayout from '@/components/ClientLayout';
 
 export const metadata = {
   title: 'JobCheck — Fake Job Detection',
-  description: 'Detect fraudulent job postings with AI-powered analysis. JobCheck exposes scam patterns so you don\'t have to.',
+  description: 'Detect fraudulent job postings with AI-powered analysis. Your AI partner in job safety.',
 };
 
 export default function RootLayout({ children }) {
