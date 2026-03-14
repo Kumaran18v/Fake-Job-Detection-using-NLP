@@ -4,19 +4,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import {
-    LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area,
-    CartesianGrid, Legend,
+    AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
-const PIE_COLORS = ['#e63946', '#5f9ea0'];
-const BAR_COLORS = ['#e63946', '#5f9ea0', '#d4a373'];
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-/* ─── Utility: format ISO date to local readable ─── */
 function formatLocalTime(isoString) {
     if (!isoString) return '—';
     try {
-        // Append Z if no timezone info, since backend stores UTC
         const dateStr = isoString.endsWith('Z') || isoString.includes('+')
             ? isoString
             : isoString + 'Z';
@@ -30,49 +26,87 @@ function formatLocalTime(isoString) {
     }
 }
 
-/* ─── Stat Card Component ─── */
-function StatCard({ label, value, accent, sub }) {
+function StatCard({ icon, label, value, subtitle }) {
     return (
         <div style={{
-            background: 'var(--charcoal)',
-            border: '1px solid var(--charcoal-lighter)',
-            padding: '28px 24px',
+            backgroundColor: 'var(--bg-white)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            cursor: 'default',
+        }}
+        onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+        }}
+        onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
         }}>
-            <div className="mono" style={{ fontSize: '0.6rem', marginBottom: 12, letterSpacing: '0.1em' }}>
-                {label}
+            <div style={{
+                width: '48px',
+                height: '48px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--bg-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: '16px',
+                fontSize: '24px',
+            }}>
+                {icon}
             </div>
             <div style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '2.5rem',
-                lineHeight: 1,
-                color: accent || 'var(--off-white)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '2rem',
+                fontWeight: '700',
+                color: 'var(--text-primary)',
+                lineHeight: '1',
+                marginBottom: '8px',
             }}>
                 {value}
             </div>
-            {sub && (
-                <div className="mono" style={{ fontSize: '0.55rem', marginTop: 8, color: 'var(--bone-muted)' }}>
-                    {sub}
+            <div style={{
+                fontSize: '0.875rem',
+                color: 'var(--text-muted)',
+                fontWeight: '500',
+                marginBottom: '4px',
+            }}>
+                {label}
+            </div>
+            {subtitle && (
+                <div style={{
+                    fontSize: '0.75rem',
+                    color: 'var(--text-muted)',
+                    fontFamily: 'var(--font-mono)',
+                }}>
+                    {subtitle}
                 </div>
             )}
         </div>
     );
 }
 
-/* ─── Custom Tooltip ─── */
 const customTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     return (
         <div style={{
-            background: 'var(--charcoal)',
-            border: '1px solid var(--charcoal-lighter)',
-            padding: '10px 14px',
+            backgroundColor: 'var(--bg-white)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '12px 16px',
+            boxShadow: 'var(--shadow-lg)',
         }}>
-            <div className="mono" style={{ fontSize: '0.6rem', marginBottom: 4 }}>{label}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: '600' }}>
+                {label}
+            </div>
             {payload.map((p, i) => (
                 <div key={i} style={{
                     fontFamily: 'var(--font-mono)',
-                    fontSize: '0.72rem',
+                    fontSize: '0.813rem',
                     color: p.color || p.fill,
+                    marginTop: '4px',
                 }}>
                     {p.name}: {p.value}
                 </div>
@@ -81,38 +115,46 @@ const customTooltip = ({ active, payload, label }) => {
     );
 };
 
-/* ─── Chart Axis Styles ─── */
-const axisTickStyle = { fontFamily: 'JetBrains Mono', fontSize: 9, fill: '#8a8278' };
-const gridStyle = { stroke: '#2a2825', strokeDasharray: '3 3' };
+const axisStyle = { fontFamily: 'var(--font-mono)', fontSize: 11, fill: 'var(--text-muted)' };
+const gridStyle = { stroke: 'var(--border)', strokeDasharray: '3 3' };
 
 export default function AdminPage() {
-    const { user, token } = useAuth();
+    const { user, authFetch } = useAuth();
     const router = useRouter();
     const [stats, setStats] = useState(null);
     const [predictions, setPredictions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [retraining, setRetraining] = useState(false);
     const [exportingPDF, setExportingPDF] = useState(false);
     const reportRef = useRef(null);
 
     useEffect(() => {
-        if (!token) { router.push('/login'); return; }
+        if (!user) {
+            router.push('/');
+            return;
+        }
+        if (user.role !== 'admin') {
+            router.push('/');
+            return;
+        }
         fetchData();
-    }, [token, router]);
+    }, [user, router]);
 
     const fetchData = async () => {
         try {
-            const headers = { Authorization: `Bearer ${token}` };
             const [statsRes, predRes] = await Promise.all([
-                fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats`, { headers }),
-                fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/predictions`, { headers }),
+                authFetch(`${API_URL}/api/stats`),
+                authFetch(`${API_URL}/api/predictions`),
             ]);
             const statsData = await statsRes.json();
             const predData = await predRes.json();
             setStats(statsData);
             setPredictions(predData.predictions || []);
+            setError(null);
         } catch (err) {
             console.error(err);
+            setError('Failed to load dashboard data');
         } finally {
             setLoading(false);
         }
@@ -122,29 +164,36 @@ export default function AdminPage() {
         if (!confirm('Retrain the model? This may take a few minutes.')) return;
         setRetraining(true);
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/retrain`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            await authFetch(`${API_URL}/api/retrain`, { method: 'POST' });
             alert('Model retrained successfully.');
             fetchData();
         } catch (err) {
-            alert('Retrain failed.');
+            alert('Retrain failed: ' + err.message);
         } finally {
             setRetraining(false);
         }
     };
 
     const exportCSV = () => {
-        const rows = [['ID', 'Prediction', 'Confidence', 'Date']];
+        const rows = [['ID', 'Date', 'Text Snippet', 'Prediction', 'Confidence', 'Model', 'Flagged']];
         predictions.forEach(p => {
-            rows.push([p.id, p.prediction, p.confidence, formatLocalTime(p.created_at)]);
+            rows.push([
+                p.id,
+                formatLocalTime(p.created_at),
+                (p.text_snippet || '').replace(/,/g, ';'),
+                p.prediction,
+                p.confidence,
+                p.model_used || '—',
+                p.flagged ? 'Yes' : 'No'
+            ]);
         });
         const csv = rows.map(r => r.join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `jobcheck_report_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+        a.href = url;
+        a.download = `admin_predictions_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
         URL.revokeObjectURL(url);
     };
 
@@ -154,36 +203,85 @@ export default function AdminPage() {
         try {
             const html2canvas = (await import('html2canvas')).default;
             const { jsPDF } = await import('jspdf');
-
-            const canvas = await html2canvas(reportRef.current, {
-                backgroundColor: '#1e1d1b',
-                scale: 2,
-                useCORS: true,
-                logging: false,
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = 210; // A4 width in mm
-            const pageHeight = 297; // A4 height in mm
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            await import('jspdf-autotable');
 
             const pdf = new jsPDF('p', 'mm', 'a4');
+            
+            // Add header
+            pdf.setFontSize(20);
+            pdf.setTextColor(17, 24, 39);
+            pdf.text('Admin Dashboard Report', 15, 20);
+            
+            pdf.setFontSize(10);
+            pdf.setTextColor(107, 114, 128);
+            pdf.text(`Generated: ${new Date().toLocaleString()}`, 15, 28);
+            
+            let yPos = 40;
 
-            // Add pages if content is taller than one page
-            let heightLeft = imgHeight;
-            let position = 0;
+            // Stats summary
+            if (stats) {
+                pdf.setFontSize(14);
+                pdf.setTextColor(17, 24, 39);
+                pdf.text('System Statistics', 15, yPos);
+                yPos += 10;
 
-            pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+                const summaryData = [
+                    ['Total Predictions', stats.total_predictions || 0],
+                    ['Fraud Detected', stats.fraud_count || stats.total_fake || 0],
+                    ['Verified Legit', stats.legit_count || stats.total_real || 0],
+                    ['Fraud Rate', `${stats.fraud_rate || 0}%`],
+                    ['Model Accuracy', stats.accuracy ? `${(stats.accuracy * 100).toFixed(1)}%` : '—'],
+                ];
 
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
+                pdf.autoTable({
+                    startY: yPos,
+                    head: [['Metric', 'Value']],
+                    body: summaryData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [29, 78, 216], textColor: 255 },
+                    styles: { fontSize: 9 },
+                    margin: { left: 15, right: 15 },
+                });
+
+                yPos = pdf.lastAutoTable.finalY + 15;
             }
 
-            pdf.save(`jobcheck_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+            // Predictions table
+            pdf.setFontSize(14);
+            pdf.setTextColor(17, 24, 39);
+            pdf.text('Recent Predictions', 15, yPos);
+            yPos += 10;
+
+            const tableData = predictions.slice(0, 50).map(p => [
+                p.id,
+                formatLocalTime(p.created_at),
+                (p.text_snippet || '').substring(0, 50) + '...',
+                p.prediction,
+                p.confidence + '%',
+                p.model_used || '—',
+                p.flagged ? 'Yes' : 'No'
+            ]);
+
+            pdf.autoTable({
+                startY: yPos,
+                head: [['ID', 'Date', 'Text', 'Verdict', 'Conf.', 'Model', 'Flag']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [29, 78, 216], textColor: 255 },
+                styles: { fontSize: 7 },
+                columnStyles: {
+                    0: { cellWidth: 15 },
+                    1: { cellWidth: 35 },
+                    2: { cellWidth: 60 },
+                    3: { cellWidth: 20 },
+                    4: { cellWidth: 15 },
+                    5: { cellWidth: 25 },
+                    6: { cellWidth: 15 },
+                },
+                margin: { left: 15, right: 15 },
+            });
+
+            pdf.save(`admin_dashboard_${new Date().toISOString().slice(0, 10)}.pdf`);
         } catch (err) {
             console.error('PDF export failed:', err);
             alert('PDF export failed. Check console.');
@@ -194,38 +292,95 @@ export default function AdminPage() {
 
     if (loading) {
         return (
-            <>
+            <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'var(--bg-primary)',
+                paddingTop: '80px',
+            }}>
                 <div style={{
-                    minHeight: '100vh',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    textAlign: 'center',
                 }}>
-                    <span className="mono" style={{ animation: 'blink 1s infinite' }}>
-                        ■ LOADING DASHBOARD
-                    </span>
+                    <div style={{
+                        width: '48px',
+                        height: '48px',
+                        border: '4px solid var(--bg-muted)',
+                        borderTopColor: 'var(--primary)',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        margin: '0 auto 16px',
+                    }} />
+                    <div style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.875rem',
+                        color: 'var(--text-secondary)',
+                    }}>
+                        Loading Dashboard...
+                    </div>
                 </div>
-            </>
+            </div>
         );
     }
 
-    /* ── Derived Data ── */
+    if (error) {
+        return (
+            <div style={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'var(--bg-primary)',
+                paddingTop: '80px',
+            }}>
+                <div style={{
+                    backgroundColor: 'var(--danger-light)',
+                    border: '1px solid var(--danger)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: '24px',
+                    maxWidth: '400px',
+                    textAlign: 'center',
+                }}>
+                    <div style={{
+                        fontSize: '2rem',
+                        marginBottom: '12px',
+                    }}>⚠️</div>
+                    <div style={{
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        color: 'var(--danger)',
+                        marginBottom: '8px',
+                    }}>
+                        Error Loading Dashboard
+                    </div>
+                    <div style={{
+                        fontSize: '0.875rem',
+                        color: 'var(--text-secondary)',
+                    }}>
+                        {error}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Derived data
     const pieData = stats ? [
-        { name: 'Fraud', value: stats.total_fake || 0 },
-        { name: 'Legit', value: stats.total_real || 0 },
+        { name: 'Fraud', value: stats.fraud_count || stats.total_fake || 0 },
+        { name: 'Legit', value: stats.legit_count || stats.total_real || 0 },
     ] : [];
 
     const trendData = stats?.daily_trend || [];
 
-    // Model comparison bar chart data from all_results
-    const modelCompData = stats?.model_info?.all_results?.map(r => ({
-        name: r.model?.replace('Regression', 'Reg.').replace('Gradient Boosting', 'GBoosting'),
+    const modelCompData = stats?.model_comparison?.map(r => ({
+        name: r.model?.replace('Regression', 'Reg.').replace('Gradient Boosting', 'GB').substring(0, 12),
         Accuracy: Math.round((r.accuracy || 0) * 100),
         Precision: Math.round((r.precision || 0) * 100),
         Recall: Math.round((r.recall || 0) * 100),
+        F1: Math.round((r.f1 || 0) * 100),
     })) || [];
 
-    // Confidence distribution from recent predictions
     const confBuckets = { '0-20%': 0, '20-40%': 0, '40-60%': 0, '60-80%': 0, '80-100%': 0 };
     predictions.forEach(p => {
         const c = p.confidence;
@@ -237,383 +392,558 @@ export default function AdminPage() {
     });
     const confDistData = Object.entries(confBuckets).map(([range, count]) => ({ range, count }));
 
-    // Fraud rate percentage
     const fraudRate = stats?.total_predictions > 0
-        ? ((stats.total_fake / stats.total_predictions) * 100).toFixed(1)
+        ? ((((stats.fraud_count || stats.total_fake) / stats.total_predictions) * 100).toFixed(1))
         : '0';
 
     return (
         <>
+            <style jsx global>{`
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
+            `}</style>
             <div style={{
                 minHeight: '100vh',
-                paddingTop: 80,
-                background: 'var(--charcoal-warm)',
+                paddingTop: '80px',
+                backgroundColor: 'var(--bg-primary)',
+                fontFamily: 'var(--font-body)',
             }}>
                 <div ref={reportRef} style={{
-                    maxWidth: 1200,
+                    maxWidth: '1280px',
                     margin: '0 auto',
-                    padding: '40px',
+                    padding: '40px 24px',
                 }}>
-                    {/* ═══ HEADER ═══ */}
+                    {/* HEADER */}
                     <div style={{
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'flex-start',
-                        marginBottom: 48,
+                        marginBottom: '40px',
+                        flexWrap: 'wrap',
+                        gap: '20px',
                     }}>
                         <div>
-                            <div className="mono" style={{ color: 'var(--red)', marginBottom: 12 }}>
-                                ■ ADMIN CONSOLE
-                            </div>
                             <h1 style={{
                                 fontFamily: 'var(--font-display)',
-                                fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-                                color: 'var(--off-white)',
-                                lineHeight: 0.95,
+                                fontSize: 'clamp(2rem, 5vw, 2.5rem)',
+                                fontWeight: '700',
+                                color: 'var(--text-primary)',
+                                marginBottom: '8px',
+                                lineHeight: '1.2',
                             }}>
-                                SYSTEM<br />OVERVIEW
+                                Admin Dashboard
                             </h1>
+                            <p style={{
+                                fontSize: '1rem',
+                                color: 'var(--text-secondary)',
+                                margin: '0',
+                            }}>
+                                System Analytics & Management
+                            </p>
                         </div>
-                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                            <button onClick={exportCSV} className="btn-outline" style={{ fontSize: '0.7rem', padding: '10px 18px' }}>
-                                ↓ CSV
+                        <div style={{
+                            display: 'flex',
+                            gap: '12px',
+                            flexWrap: 'wrap',
+                        }}>
+                            <button
+                                onClick={exportCSV}
+                                style={{
+                                    padding: '10px 20px',
+                                    backgroundColor: 'var(--bg-white)',
+                                    color: 'var(--primary)',
+                                    border: '1px solid var(--primary)',
+                                    borderRadius: 'var(--radius-md)',
+                                    fontSize: '0.875rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    fontFamily: 'var(--font-body)',
+                                    boxShadow: 'var(--shadow-sm)',
+                                }}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.backgroundColor = 'var(--primary-lighter)';
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.backgroundColor = 'var(--bg-white)';
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                }}
+                                onFocus={e => e.currentTarget.style.outline = '2px solid var(--primary)'}
+                                onBlur={e => e.currentTarget.style.outline = 'none'}
+                            >
+                                📥 Export CSV
                             </button>
                             <button
                                 onClick={exportPDF}
-                                className="btn-outline"
                                 disabled={exportingPDF}
-                                style={{ fontSize: '0.7rem', padding: '10px 18px' }}
+                                style={{
+                                    padding: '10px 20px',
+                                    backgroundColor: 'var(--bg-white)',
+                                    color: 'var(--primary)',
+                                    border: '1px solid var(--primary)',
+                                    borderRadius: 'var(--radius-md)',
+                                    fontSize: '0.875rem',
+                                    fontWeight: '600',
+                                    cursor: exportingPDF ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.2s',
+                                    fontFamily: 'var(--font-body)',
+                                    opacity: exportingPDF ? 0.6 : 1,
+                                    boxShadow: 'var(--shadow-sm)',
+                                }}
+                                onMouseEnter={e => {
+                                    if (!exportingPDF) {
+                                        e.currentTarget.style.backgroundColor = 'var(--primary-lighter)';
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                                    }
+                                }}
+                                onMouseLeave={e => {
+                                    if (!exportingPDF) {
+                                        e.currentTarget.style.backgroundColor = 'var(--bg-white)';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                    }
+                                }}
+                                onFocus={e => e.currentTarget.style.outline = '2px solid var(--primary)'}
+                                onBlur={e => e.currentTarget.style.outline = 'none'}
                             >
-                                {exportingPDF ? '⏳ EXPORTING...' : '↓ PDF REPORT'}
+                                {exportingPDF ? '⏳ Exporting...' : '📄 Export PDF'}
                             </button>
                             <button
                                 onClick={handleRetrain}
-                                className="btn-danger"
                                 disabled={retraining}
-                                style={{ fontSize: '0.7rem', padding: '10px 18px' }}
+                                style={{
+                                    padding: '10px 20px',
+                                    backgroundColor: 'var(--warning)',
+                                    color: 'var(--text-inverse)',
+                                    border: 'none',
+                                    borderRadius: 'var(--radius-md)',
+                                    fontSize: '0.875rem',
+                                    fontWeight: '600',
+                                    cursor: retraining ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.2s',
+                                    fontFamily: 'var(--font-body)',
+                                    opacity: retraining ? 0.6 : 1,
+                                    boxShadow: 'var(--shadow-sm)',
+                                }}
+                                onMouseEnter={e => {
+                                    if (!retraining) {
+                                        e.currentTarget.style.backgroundColor = '#ea580c';
+                                        e.currentTarget.style.transform = 'translateY(-1px)';
+                                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                                    }
+                                }}
+                                onMouseLeave={e => {
+                                    if (!retraining) {
+                                        e.currentTarget.style.backgroundColor = 'var(--warning)';
+                                        e.currentTarget.style.transform = 'translateY(0)';
+                                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                    }
+                                }}
+                                onFocus={e => e.currentTarget.style.outline = '2px solid var(--warning)'}
+                                onBlur={e => e.currentTarget.style.outline = 'none'}
                             >
-                                {retraining ? 'TRAINING...' : '⟳ RETRAIN MODEL'}
+                                {retraining ? '⏳ Training...' : '🔄 Retrain Model'}
                             </button>
                         </div>
                     </div>
 
-                    {/* ═══ STATS GRID ═══ */}
+                    {/* STAT CARDS */}
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(4, 1fr)',
-                        gap: 1,
-                        background: 'var(--charcoal-lighter)',
-                        marginBottom: 48,
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                        gap: '20px',
+                        marginBottom: '40px',
                     }}>
-                        <StatCard label="TOTAL SCANS" value={stats?.total_predictions || 0} />
-                        <StatCard label="FRAUD DETECTED" value={stats?.total_fake || 0} accent="var(--red)" sub={`${fraudRate}% OF TOTAL`} />
-                        <StatCard label="VERIFIED LEGIT" value={stats?.total_real || 0} accent="var(--teal)" />
                         <StatCard
-                            label="MODEL ACCURACY"
-                            value={stats?.model_info?.accuracy ? `${(stats.model_info.accuracy * 100).toFixed(0)}%` : '—'}
-                            sub={stats?.model_info?.model_name || ''}
+                            icon="📊"
+                            label="Total Scans"
+                            value={stats?.total_predictions || 0}
+                        />
+                        <StatCard
+                            icon="🚨"
+                            label="Fraud Detected"
+                            value={stats?.fraud_count || stats?.total_fake || 0}
+                            subtitle={`${fraudRate}% of total`}
+                        />
+                        <StatCard
+                            icon="✅"
+                            label="Verified Legit"
+                            value={stats?.legit_count || stats?.total_real || 0}
+                        />
+                        <StatCard
+                            icon="🎯"
+                            label="Model Accuracy"
+                            value={stats?.accuracy ? `${(stats.accuracy * 100).toFixed(0)}%` : '—'}
+                            subtitle={stats?.avg_confidence ? `${stats.avg_confidence}% avg conf.` : ''}
                         />
                     </div>
 
-                    {/* ═══ ROW 1: Trend + Donut ═══ */}
+                    {/* CHARTS ROW 1 */}
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: '2fr 1fr',
-                        gap: 1,
-                        background: 'var(--charcoal-lighter)',
-                        marginBottom: 2,
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                        gap: '20px',
+                        marginBottom: '20px',
                     }}>
-                        {/* Area Trend Chart */}
-                        <div style={{ background: 'var(--charcoal)', padding: '28px 24px' }}>
-                            <div className="mono" style={{ fontSize: '0.6rem', marginBottom: 20, letterSpacing: '0.1em' }}>
-                                ■ DAILY SCAN VOLUME
-                            </div>
+                        {/* Daily Trend Chart */}
+                        <div style={{
+                            backgroundColor: 'var(--bg-white)',
+                            borderRadius: 'var(--radius-lg)',
+                            padding: '24px',
+                            boxShadow: 'var(--shadow-sm)',
+                        }}>
+                            <h3 style={{
+                                fontSize: '1rem',
+                                fontWeight: '600',
+                                color: 'var(--text-primary)',
+                                marginBottom: '20px',
+                                marginTop: '0',
+                            }}>
+                                Daily Scan Volume
+                            </h3>
                             {trendData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height={220}>
+                                <ResponsiveContainer width="100%" height={240}>
                                     <AreaChart data={trendData}>
                                         <CartesianGrid {...gridStyle} />
-                                        <XAxis dataKey="date" tick={axisTickStyle} axisLine={{ stroke: '#3a3835' }} tickLine={false} />
-                                        <YAxis tick={axisTickStyle} axisLine={false} tickLine={false} />
+                                        <XAxis dataKey="date" tick={axisStyle} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+                                        <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
                                         <Tooltip content={customTooltip} />
-                                        <Area type="monotone" dataKey="fake" stroke="#e63946" fill="#e6394620" strokeWidth={2} name="Fraud" />
-                                        <Area type="monotone" dataKey="real" stroke="#5f9ea0" fill="#5f9ea020" strokeWidth={2} name="Legit" />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="fraud"
+                                            stroke="var(--danger)"
+                                            fill="var(--danger-light)"
+                                            strokeWidth={2}
+                                            name="Fraud"
+                                        />
+                                        <Area
+                                            type="monotone"
+                                            dataKey="legit"
+                                            stroke="var(--success)"
+                                            fill="var(--success-light)"
+                                            strokeWidth={2}
+                                            name="Legit"
+                                        />
                                     </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <span className="mono" style={{ fontSize: '0.65rem' }}>NO TREND DATA</span>
+                                <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                                        No trend data available
+                                    </span>
                                 </div>
                             )}
                         </div>
 
-                        {/* Donut Chart */}
-                        <div style={{ background: 'var(--charcoal)', padding: '28px 24px' }}>
-                            <div className="mono" style={{ fontSize: '0.6rem', marginBottom: 20, letterSpacing: '0.1em' }}>
-                                ■ CLASSIFICATION SPLIT
-                            </div>
-                            <ResponsiveContainer width="100%" height={180}>
+                        {/* Classification Split Pie Chart */}
+                        <div style={{
+                            backgroundColor: 'var(--bg-white)',
+                            borderRadius: 'var(--radius-lg)',
+                            padding: '24px',
+                            boxShadow: 'var(--shadow-sm)',
+                        }}>
+                            <h3 style={{
+                                fontSize: '1rem',
+                                fontWeight: '600',
+                                color: 'var(--text-primary)',
+                                marginBottom: '20px',
+                                marginTop: '0',
+                            }}>
+                                Classification Split
+                            </h3>
+                            <ResponsiveContainer width="100%" height={200}>
                                 <PieChart>
-                                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value" stroke="none">
-                                        {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
+                                    <Pie
+                                        data={pieData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={4}
+                                        dataKey="value"
+                                        stroke="none"
+                                    >
+                                        <Cell fill="var(--danger)" />
+                                        <Cell fill="var(--success)" />
                                     </Pie>
                                     <Tooltip content={customTooltip} />
                                 </PieChart>
                             </ResponsiveContainer>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 8 }}>
-                                {[{ c: '#e63946', l: 'FRAUD' }, { c: '#5f9ea0', l: 'LEGIT' }].map(({ c, l }) => (
-                                    <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                        <div style={{ width: 8, height: 8, background: c }} />
-                                        <span className="mono" style={{ fontSize: '0.6rem' }}>{l}</span>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginTop: '16px' }}>
+                                {[
+                                    { color: 'var(--danger)', label: 'Fraud', value: pieData[0]?.value || 0 },
+                                    { color: 'var(--success)', label: 'Legit', value: pieData[1]?.value || 0 },
+                                ].map(({ color, label, value }) => (
+                                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <div style={{ width: '12px', height: '12px', backgroundColor: color, borderRadius: '2px' }} />
+                                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.813rem', color: 'var(--text-secondary)' }}>
+                                            {label}: {value}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
                         </div>
                     </div>
 
-                    {/* ═══ ROW 2: Model Comparison + Confidence Distribution ═══ */}
+                    {/* CHARTS ROW 2 */}
                     <div style={{
                         display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gap: 1,
-                        background: 'var(--charcoal-lighter)',
-                        marginBottom: 48,
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                        gap: '20px',
+                        marginBottom: '40px',
                     }}>
-                        {/* Model Comparison Bar Chart */}
-                        <div style={{ background: 'var(--charcoal)', padding: '28px 24px' }}>
-                            <div className="mono" style={{ fontSize: '0.6rem', marginBottom: 20, letterSpacing: '0.1em' }}>
-                                ■ MODEL COMPARISON
-                            </div>
+                        {/* Model Comparison Chart */}
+                        <div style={{
+                            backgroundColor: 'var(--bg-white)',
+                            borderRadius: 'var(--radius-lg)',
+                            padding: '24px',
+                            boxShadow: 'var(--shadow-sm)',
+                        }}>
+                            <h3 style={{
+                                fontSize: '1rem',
+                                fontWeight: '600',
+                                color: 'var(--text-primary)',
+                                marginBottom: '20px',
+                                marginTop: '0',
+                            }}>
+                                Model Comparison
+                            </h3>
                             {modelCompData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height={220}>
-                                    <BarChart data={modelCompData} barCategoryGap="20%">
+                                <ResponsiveContainer width="100%" height={240}>
+                                    <BarChart data={modelCompData} barCategoryGap="15%">
                                         <CartesianGrid {...gridStyle} />
-                                        <XAxis dataKey="name" tick={{ ...axisTickStyle, fontSize: 8 }} axisLine={{ stroke: '#3a3835' }} tickLine={false} />
-                                        <YAxis domain={[0, 100]} tick={axisTickStyle} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+                                        <XAxis dataKey="name" tick={{ ...axisStyle, fontSize: 9 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} angle={-45} textAnchor="end" height={80} />
+                                        <YAxis domain={[0, 100]} tick={axisStyle} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
                                         <Tooltip content={customTooltip} />
-                                        <Bar dataKey="Accuracy" fill="#e63946" radius={[2, 2, 0, 0]} />
-                                        <Bar dataKey="Precision" fill="#5f9ea0" radius={[2, 2, 0, 0]} />
-                                        <Bar dataKey="Recall" fill="#d4a373" radius={[2, 2, 0, 0]} />
+                                        <Bar dataKey="Accuracy" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Precision" fill="var(--success)" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="Recall" fill="var(--warning)" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <span className="mono" style={{ fontSize: '0.65rem' }}>NO MODEL DATA</span>
+                                <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                                        No model comparison data
+                                    </span>
                                 </div>
                             )}
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 12 }}>
-                                {[{ c: '#e63946', l: 'ACCURACY' }, { c: '#5f9ea0', l: 'PRECISION' }, { c: '#d4a373', l: 'RECALL' }].map(({ c, l }) => (
-                                    <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                        <div style={{ width: 8, height: 8, background: c }} />
-                                        <span className="mono" style={{ fontSize: '0.5rem' }}>{l}</span>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>
+                                {[
+                                    { color: 'var(--primary)', label: 'Accuracy' },
+                                    { color: 'var(--success)', label: 'Precision' },
+                                    { color: 'var(--warning)', label: 'Recall' },
+                                ].map(({ color, label }) => (
+                                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <div style={{ width: '10px', height: '10px', backgroundColor: color, borderRadius: '2px' }} />
+                                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                            {label}
+                                        </span>
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Confidence Distribution */}
-                        <div style={{ background: 'var(--charcoal)', padding: '28px 24px' }}>
-                            <div className="mono" style={{ fontSize: '0.6rem', marginBottom: 20, letterSpacing: '0.1em' }}>
-                                ■ CONFIDENCE DISTRIBUTION
-                            </div>
-                            <ResponsiveContainer width="100%" height={220}>
-                                <BarChart data={confDistData} barCategoryGap="15%">
+                        {/* Confidence Distribution Chart */}
+                        <div style={{
+                            backgroundColor: 'var(--bg-white)',
+                            borderRadius: 'var(--radius-lg)',
+                            padding: '24px',
+                            boxShadow: 'var(--shadow-sm)',
+                        }}>
+                            <h3 style={{
+                                fontSize: '1rem',
+                                fontWeight: '600',
+                                color: 'var(--text-primary)',
+                                marginBottom: '20px',
+                                marginTop: '0',
+                            }}>
+                                Confidence Distribution
+                            </h3>
+                            <ResponsiveContainer width="100%" height={240}>
+                                <BarChart data={confDistData} barCategoryGap="10%">
                                     <CartesianGrid {...gridStyle} />
-                                    <XAxis dataKey="range" tick={{ ...axisTickStyle, fontSize: 8 }} axisLine={{ stroke: '#3a3835' }} tickLine={false} />
-                                    <YAxis tick={axisTickStyle} axisLine={false} tickLine={false} />
+                                    <XAxis dataKey="range" tick={{ ...axisStyle, fontSize: 9 }} axisLine={{ stroke: 'var(--border)' }} tickLine={false} />
+                                    <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
                                     <Tooltip content={customTooltip} />
-                                    <Bar dataKey="count" name="Predictions" radius={[2, 2, 0, 0]}>
-                                        {confDistData.map((_, i) => (
-                                            <Cell key={i} fill={i < 2 ? '#5f9ea020' : i < 4 ? '#d4a37380' : '#e6394690'}
-                                                stroke={i < 2 ? '#5f9ea0' : i < 4 ? '#d4a373' : '#e63946'}
-                                                strokeWidth={1}
+                                    <Bar dataKey="count" name="Predictions" radius={[4, 4, 0, 0]}>
+                                        {confDistData.map((entry, i) => (
+                                            <Cell
+                                                key={i}
+                                                fill={
+                                                    i < 2 ? 'var(--danger-light)' :
+                                                    i < 4 ? 'var(--warning-light)' :
+                                                    'var(--success-light)'
+                                                }
+                                                stroke={
+                                                    i < 2 ? 'var(--danger)' :
+                                                    i < 4 ? 'var(--warning)' :
+                                                    'var(--success)'
+                                                }
+                                                strokeWidth={2}
                                             />
                                         ))}
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
-                            <div className="mono" style={{ textAlign: 'center', fontSize: '0.5rem', color: 'var(--bone-muted)', marginTop: 8 }}>
-                                LOWER = UNCERTAIN · HIGHER = CONFIDENT
+                            <div style={{
+                                textAlign: 'center',
+                                fontSize: '0.75rem',
+                                color: 'var(--text-muted)',
+                                marginTop: '12px',
+                                fontFamily: 'var(--font-mono)',
+                            }}>
+                                Lower = Uncertain · Higher = Confident
                             </div>
                         </div>
                     </div>
 
-                    {/* ═══ ACTIVE MODEL INFO ═══ */}
-                    {stats?.model_info && (
-                        <div style={{
-                            background: 'var(--charcoal)',
-                            border: '1px solid var(--charcoal-lighter)',
-                            padding: '28px 24px',
-                            marginBottom: 48,
-                        }}>
-                            <div className="mono" style={{ fontSize: '0.6rem', marginBottom: 16, letterSpacing: '0.1em' }}>
-                                ■ ACTIVE MODEL
-                            </div>
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(5, 1fr)',
-                                gap: 24,
-                            }}>
-                                {[
-                                    { k: 'NAME', v: stats.model_info.model_name || '—' },
-                                    { k: 'VERSION', v: stats.model_info.version || '—' },
-                                    { k: 'ACCURACY', v: stats.model_info.accuracy ? `${(stats.model_info.accuracy * 100).toFixed(1)}%` : '—' },
-                                    { k: 'F1 SCORE', v: stats.model_info.f1_score ? `${(stats.model_info.f1_score * 100).toFixed(1)}%` : '—' },
-                                    { k: 'TRAINED', v: formatLocalTime(stats.model_info.trained_at) },
-                                ].map(({ k, v }) => (
-                                    <div key={k}>
-                                        <div className="mono" style={{ fontSize: '0.55rem', marginBottom: 6, color: 'var(--bone-muted)' }}>{k}</div>
-                                        <div style={{
-                                            fontFamily: 'var(--font-mono)',
-                                            fontSize: '0.82rem',
-                                            color: 'var(--off-white)',
-                                        }}>
-                                            {v}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ═══ A/B TEST RESULTS ═══ */}
-                    {stats?.model_info?.ab_test_results?.length > 0 && (
-                        <div style={{
-                            background: 'var(--charcoal)',
-                            border: '1px solid var(--charcoal-lighter)',
-                            padding: '28px 24px',
-                            marginBottom: 48,
-                        }}>
-                            <div className="mono" style={{ fontSize: '0.6rem', marginBottom: 20, letterSpacing: '0.1em', color: '#38bdf8' }}>
-                                ■ A/B TEST PERFORMANCE
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24 }}>
-                                {stats.model_info.ab_test_results.map((m, i) => (
-                                    <div key={i} style={{ padding: 16, border: '1px solid var(--charcoal-lighter)', background: 'var(--charcoal-light)' }}>
-                                        <div className="mono" style={{ fontSize: '0.7rem', color: 'var(--off-white)', marginBottom: 12 }}>
-                                            {m.model.toUpperCase().replace('_', ' ')}
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span className="mono" style={{ fontSize: '0.55rem', color: 'var(--bone-muted)' }}>VOLUME</span>
-                                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--off-white)' }}>{m.total_predictions}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span className="mono" style={{ fontSize: '0.55rem', color: 'var(--bone-muted)' }}>FRAUD RATE</span>
-                                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--red)' }}>{m.fake_percentage}%</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                                <span className="mono" style={{ fontSize: '0.55rem', color: 'var(--bone-muted)' }}>AVG CONF.</span>
-                                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--teal)' }}>{m.avg_confidence}%</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ═══ PREDICTIONS TABLE ═══ */}
-                    <div>
-                        <div className="mono" style={{ fontSize: '0.6rem', marginBottom: 16, letterSpacing: '0.1em' }}>
-                            ■ RECENT PREDICTIONS ({predictions.length})
-                        </div>
-                        <div style={{
-                            background: 'var(--charcoal)',
-                            border: '1px solid var(--charcoal-lighter)',
-                            overflow: 'hidden',
-                        }}>
-                            {/* Table Header */}
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: '60px 1fr 100px 80px 200px',
-                                borderBottom: '1px solid var(--charcoal-lighter)',
-                                padding: '12px 20px',
-                            }}>
-                                {['ID', 'JOB TEXT', 'VERDICT', 'CONF.', 'DATE & TIME'].map(h => (
-                                    <div key={h} className="mono" style={{ fontSize: '0.55rem', letterSpacing: '0.1em' }}>
-                                        {h}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Table Rows */}
-                            {predictions.slice(0, 20).map((p, i) => (
-                                <div
-                                    key={p.id}
-                                    style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: '60px 1fr 100px 80px 200px',
-                                        padding: '14px 20px',
-                                        borderBottom: i < Math.min(predictions.length, 20) - 1 ? '1px solid var(--charcoal-lighter)' : 'none',
-                                        transition: 'background 0.1s',
-                                    }}
-                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--charcoal-light)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                >
-                                    <div style={{
-                                        fontFamily: 'var(--font-mono)',
-                                        fontSize: '0.75rem',
-                                        color: 'var(--bone-muted)',
-                                    }}>
-                                        #{p.id}
-                                    </div>
-                                    <div style={{
-                                        fontSize: '0.82rem',
-                                        color: 'var(--bone-dim)',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        whiteSpace: 'nowrap',
-                                        paddingRight: 20,
-                                    }}>
-                                        {p.job_text}
-                                    </div>
-                                    <div>
-                                        <span className={p.prediction === 'Fake' ? 'tag-red' : 'tag-teal'}>
-                                            {p.prediction === 'Fake' ? 'FRAUD' : 'LEGIT'}
-                                        </span>
-                                    </div>
-                                    <div style={{
-                                        fontFamily: 'var(--font-mono)',
-                                        fontSize: '0.75rem',
-                                        color: p.prediction === 'Fake' ? 'var(--red)' : 'var(--teal)',
-                                    }}>
-                                        {p.confidence}%
-                                    </div>
-                                    <div style={{
-                                        fontFamily: 'var(--font-mono)',
-                                        fontSize: '0.7rem',
-                                        color: 'var(--bone-muted)',
-                                    }}>
-                                        {formatLocalTime(p.created_at)}
-                                    </div>
-                                </div>
-                            ))}
-
-                            {predictions.length === 0 && (
-                                <div style={{
-                                    padding: '40px 20px',
-                                    textAlign: 'center',
-                                }}>
-                                    <span className="mono" style={{ fontSize: '0.65rem' }}>NO PREDICTIONS YET</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* ═══ REPORT FOOTER ═══ */}
+                    {/* RECENT PREDICTIONS TABLE */}
                     <div style={{
-                        marginTop: 40,
-                        paddingTop: 20,
-                        borderTop: '1px solid var(--charcoal-lighter)',
-                        display: 'flex',
-                        justifyContent: 'space-between',
+                        backgroundColor: 'var(--bg-white)',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: '24px',
+                        boxShadow: 'var(--shadow-sm)',
                     }}>
-                        <span className="mono" style={{ fontSize: '0.55rem', color: 'var(--bone-muted)' }}>
-                            JOBCHECK ADMIN REPORT — GENERATED {new Date().toLocaleDateString('en-IN')}
-                        </span>
-                        <span className="mono" style={{ fontSize: '0.55rem', color: 'var(--charcoal-lighter)' }}>
-                            CONFIDENTIAL — INTERNAL USE ONLY
-                        </span>
+                        <h3 style={{
+                            fontSize: '1rem',
+                            fontWeight: '600',
+                            color: 'var(--text-primary)',
+                            marginBottom: '20px',
+                            marginTop: '0',
+                        }}>
+                            Recent Predictions ({predictions.length})
+                        </h3>
+                        <div style={{
+                            overflowX: 'auto',
+                        }}>
+                            <table style={{
+                                width: '100%',
+                                borderCollapse: 'collapse',
+                            }}>
+                                <thead>
+                                    <tr style={{
+                                        borderBottom: '2px solid var(--border)',
+                                    }}>
+                                        {['Date', 'Text', 'Verdict', 'Confidence', 'Model', 'Flagged'].map(header => (
+                                            <th key={header} style={{
+                                                textAlign: 'left',
+                                                padding: '12px 16px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: '600',
+                                                color: 'var(--text-muted)',
+                                                textTransform: 'uppercase',
+                                                letterSpacing: '0.05em',
+                                            }}>
+                                                {header}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {predictions.slice(0, 20).length > 0 ? (
+                                        predictions.slice(0, 20).map((p, i) => (
+                                            <tr
+                                                key={p.id}
+                                                style={{
+                                                    borderBottom: i < Math.min(predictions.length, 20) - 1 ? '1px solid var(--border)' : 'none',
+                                                    transition: 'background-color 0.15s',
+                                                }}
+                                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-subtle)'}
+                                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                            >
+                                                <td style={{
+                                                    padding: '16px',
+                                                    fontSize: '0.813rem',
+                                                    color: 'var(--text-secondary)',
+                                                    fontFamily: 'var(--font-mono)',
+                                                    whiteSpace: 'nowrap',
+                                                }}>
+                                                    {formatLocalTime(p.created_at)}
+                                                </td>
+                                                <td style={{
+                                                    padding: '16px',
+                                                    fontSize: '0.875rem',
+                                                    color: 'var(--text-primary)',
+                                                    maxWidth: '300px',
+                                                }}>
+                                                    <div style={{
+                                                        overflow: 'hidden',
+                                                        textOverflow: 'ellipsis',
+                                                        whiteSpace: 'nowrap',
+                                                    }}>
+                                                        {p.text_snippet || '—'}
+                                                    </div>
+                                                </td>
+                                                <td style={{ padding: '16px' }}>
+                                                    <span style={{
+                                                        display: 'inline-block',
+                                                        padding: '4px 12px',
+                                                        borderRadius: 'var(--radius-sm)',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: '600',
+                                                        backgroundColor: p.prediction === 'fake' || p.prediction === 'fraud' 
+                                                            ? 'var(--danger-light)' 
+                                                            : 'var(--success-light)',
+                                                        color: p.prediction === 'fake' || p.prediction === 'fraud'
+                                                            ? 'var(--danger)'
+                                                            : 'var(--success)',
+                                                        textTransform: 'uppercase',
+                                                    }}>
+                                                        {p.prediction === 'fake' || p.prediction === 'fraud' ? '🚨 Fraud' : '✅ Legit'}
+                                                    </span>
+                                                </td>
+                                                <td style={{
+                                                    padding: '16px',
+                                                    fontSize: '0.813rem',
+                                                    color: 'var(--text-primary)',
+                                                    fontFamily: 'var(--font-mono)',
+                                                    fontWeight: '600',
+                                                }}>
+                                                    {p.confidence}%
+                                                </td>
+                                                <td style={{
+                                                    padding: '16px',
+                                                    fontSize: '0.75rem',
+                                                    color: 'var(--text-secondary)',
+                                                    fontFamily: 'var(--font-mono)',
+                                                }}>
+                                                    {p.model_used || '—'}
+                                                </td>
+                                                <td style={{
+                                                    padding: '16px',
+                                                    textAlign: 'center',
+                                                }}>
+                                                    {p.flagged && (
+                                                        <span style={{
+                                                            fontSize: '1.25rem',
+                                                        }}>
+                                                            🚩
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={6} style={{
+                                                padding: '40px',
+                                                textAlign: 'center',
+                                                fontSize: '0.875rem',
+                                                color: 'var(--text-muted)',
+                                                fontFamily: 'var(--font-mono)',
+                                            }}>
+                                                No predictions available
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
