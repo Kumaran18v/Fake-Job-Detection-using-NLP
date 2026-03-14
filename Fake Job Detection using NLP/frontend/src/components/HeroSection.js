@@ -7,14 +7,17 @@ import { HiShieldCheck, HiCheck } from 'react-icons/hi2';
 
 /* ── Animated circular confidence meter ── */
 function ConfidenceMeter({ value = 94, size = 140 }) {
-  const prefersReducedMotion = useReducedMotion();
   const [progress, setProgress] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
 
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
-    if (!inView) return;
-    if (prefersReducedMotion) { setProgress(value); return; }
+    if (!inView || !mounted) return;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reducedMotion) { setProgress(value); return; }
     let raf;
     let start = null;
     const duration = 1400;
@@ -28,7 +31,7 @@ function ConfidenceMeter({ value = 94, size = 140 }) {
     };
     raf = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(raf);
-  }, [inView, value, prefersReducedMotion]);
+  }, [inView, value, mounted]);
 
   const r = (size - 14) / 2;
   const circ = 2 * Math.PI * r;
@@ -43,7 +46,7 @@ function ConfidenceMeter({ value = 94, size = 140 }) {
           stroke="var(--success)" strokeWidth="10" fill="none"
           strokeDasharray={circ} strokeDashoffset={offset}
           strokeLinecap="round"
-          style={{ transition: prefersReducedMotion ? 'none' : 'stroke-dashoffset 0.3s ease' }} />
+          style={{ transition: 'stroke-dashoffset 0.3s ease' }} />
       </svg>
       <div style={{
         position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
