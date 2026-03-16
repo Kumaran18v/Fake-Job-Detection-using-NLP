@@ -5,8 +5,8 @@ import Link from 'next/link';
 export default function Footer() {
   return (
     <footer style={{
-      background: 'var(--text-primary)',
-      color: 'rgba(255,255,255,0.7)',
+      background: 'var(--footer-bg)',
+      color: 'var(--footer-text)',
       padding: 'clamp(32px, 4vw, 48px) clamp(16px, 4vw, 40px) clamp(20px, 2vw, 28px)',
     }}>
       <div style={{
@@ -47,7 +47,7 @@ export default function Footer() {
           <div>
             <div style={{
               fontFamily: 'var(--font-body)', fontWeight: 600,
-              fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)',
+              fontSize: '0.78rem', color: 'var(--footer-heading)',
               marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em',
             }}>Product</div>
             {[
@@ -66,7 +66,7 @@ export default function Footer() {
           <div>
             <div style={{
               fontFamily: 'var(--font-body)', fontWeight: 600,
-              fontSize: '0.78rem', color: 'rgba(255,255,255,0.4)',
+              fontSize: '0.78rem', color: 'var(--footer-heading)',
               marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em',
             }}>Company</div>
             {[
@@ -89,7 +89,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div style={{
         maxWidth: 1200, margin: '0 auto',
-        borderTop: '1px solid rgba(255,255,255,0.1)',
+        borderTop: '1px solid var(--footer-divider)',
         marginTop: 'clamp(20px, 2vw, 32px)',
         paddingTop: 'clamp(16px, 2vw, 20px)',
         display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between',

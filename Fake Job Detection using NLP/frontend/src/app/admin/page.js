@@ -8,7 +8,7 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 
 function formatLocalTime(isoString) {
     if (!isoString) return '—';
@@ -29,20 +29,23 @@ function formatLocalTime(isoString) {
 function StatCard({ icon, label, value, subtitle }) {
     return (
         <div style={{
-            backgroundColor: 'var(--bg-white)',
+            background: 'var(--card-bg)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            border: '1px solid var(--card-border)',
             borderRadius: 'var(--radius-lg)',
             padding: '24px',
-            boxShadow: 'var(--shadow-sm)',
-            transition: 'transform 0.2s, box-shadow 0.2s',
+            boxShadow: 'var(--card-shadow)',
+            transition: 'transform 0.25s ease, box-shadow 0.25s ease',
             cursor: 'default',
         }}
         onMouseEnter={e => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+            e.currentTarget.style.transform = 'translateY(-3px)';
+            e.currentTarget.style.boxShadow = '0 24px 56px rgba(0,0,0,0.12)';
         }}
         onMouseLeave={e => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+            e.currentTarget.style.boxShadow = 'var(--card-shadow)';
         }}>
             <div style={{
                 width: '48px',
@@ -92,8 +95,8 @@ const customTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null;
     return (
         <div style={{
-            backgroundColor: 'var(--bg-white)',
-            border: '1px solid var(--border)',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--card-border)',
             borderRadius: 'var(--radius-md)',
             padding: '12px 16px',
             boxShadow: 'var(--shadow-lg)',
@@ -144,8 +147,8 @@ export default function AdminPage() {
     const fetchData = async () => {
         try {
             const [statsRes, predRes] = await Promise.all([
-                authFetch(`${API_URL}/api/stats`),
-                authFetch(`${API_URL}/api/predictions`),
+                authFetch('/api/stats'),
+                authFetch('/api/predictions'),
             ]);
             const statsData = await statsRes.json();
             const predData = await predRes.json();
@@ -164,7 +167,7 @@ export default function AdminPage() {
         if (!confirm('Retrain the model? This may take a few minutes.')) return;
         setRetraining(true);
         try {
-            await authFetch(`${API_URL}/api/retrain`, { method: 'POST' });
+            await authFetch('/api/retrain', { method: 'POST' });
             alert('Model retrained successfully.');
             fetchData();
         } catch (err) {
@@ -297,7 +300,6 @@ export default function AdminPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: 'var(--bg-primary)',
                 paddingTop: '80px',
             }}>
                 <div style={{
@@ -331,7 +333,6 @@ export default function AdminPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: 'var(--bg-primary)',
                 paddingTop: '80px',
             }}>
                 <div style={{
@@ -403,10 +404,9 @@ export default function AdminPage() {
                     to { transform: rotate(360deg); }
                 }
             `}</style>
-            <div style={{
+            <div className="premium-page" style={{
                 minHeight: '100vh',
                 paddingTop: '80px',
-                backgroundColor: 'var(--bg-primary)',
                 fontFamily: 'var(--font-body)',
             }}>
                 <div ref={reportRef} style={{
@@ -451,7 +451,7 @@ export default function AdminPage() {
                                 onClick={exportCSV}
                                 style={{
                                     padding: '10px 20px',
-                                    backgroundColor: 'var(--bg-white)',
+                                    backgroundColor: 'var(--card-bg)',
                                     color: 'var(--primary)',
                                     border: '1px solid var(--primary)',
                                     borderRadius: 'var(--radius-md)',
@@ -460,17 +460,17 @@ export default function AdminPage() {
                                     cursor: 'pointer',
                                     transition: 'all 0.2s',
                                     fontFamily: 'var(--font-body)',
-                                    boxShadow: 'var(--shadow-sm)',
+                                    boxShadow: 'var(--card-shadow)',
                                 }}
                                 onMouseEnter={e => {
                                     e.currentTarget.style.backgroundColor = 'var(--primary-lighter)';
                                     e.currentTarget.style.transform = 'translateY(-1px)';
-                                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                                    e.currentTarget.style.boxShadow = '0 24px 56px rgba(0,0,0,0.12)';
                                 }}
                                 onMouseLeave={e => {
-                                    e.currentTarget.style.backgroundColor = 'var(--bg-white)';
+                                    e.currentTarget.style.backgroundColor = 'var(--card-bg)';
                                     e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                    e.currentTarget.style.boxShadow = 'var(--card-shadow)';
                                 }}
                                 onFocus={e => e.currentTarget.style.outline = '2px solid var(--primary)'}
                                 onBlur={e => e.currentTarget.style.outline = 'none'}
@@ -482,7 +482,7 @@ export default function AdminPage() {
                                 disabled={exportingPDF}
                                 style={{
                                     padding: '10px 20px',
-                                    backgroundColor: 'var(--bg-white)',
+                                    backgroundColor: 'var(--card-bg)',
                                     color: 'var(--primary)',
                                     border: '1px solid var(--primary)',
                                     borderRadius: 'var(--radius-md)',
@@ -492,20 +492,20 @@ export default function AdminPage() {
                                     transition: 'all 0.2s',
                                     fontFamily: 'var(--font-body)',
                                     opacity: exportingPDF ? 0.6 : 1,
-                                    boxShadow: 'var(--shadow-sm)',
+                                    boxShadow: 'var(--card-shadow)',
                                 }}
                                 onMouseEnter={e => {
                                     if (!exportingPDF) {
                                         e.currentTarget.style.backgroundColor = 'var(--primary-lighter)';
                                         e.currentTarget.style.transform = 'translateY(-1px)';
-                                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                                        e.currentTarget.style.boxShadow = '0 24px 56px rgba(0,0,0,0.12)';
                                     }
                                 }}
                                 onMouseLeave={e => {
                                     if (!exportingPDF) {
-                                        e.currentTarget.style.backgroundColor = 'var(--bg-white)';
+                                        e.currentTarget.style.backgroundColor = 'var(--card-bg)';
                                         e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                        e.currentTarget.style.boxShadow = 'var(--card-shadow)';
                                     }
                                 }}
                                 onFocus={e => e.currentTarget.style.outline = '2px solid var(--primary)'}
@@ -528,20 +528,20 @@ export default function AdminPage() {
                                     transition: 'all 0.2s',
                                     fontFamily: 'var(--font-body)',
                                     opacity: retraining ? 0.6 : 1,
-                                    boxShadow: 'var(--shadow-sm)',
+                                    boxShadow: 'var(--card-shadow)',
                                 }}
                                 onMouseEnter={e => {
                                     if (!retraining) {
                                         e.currentTarget.style.backgroundColor = '#ea580c';
                                         e.currentTarget.style.transform = 'translateY(-1px)';
-                                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                                        e.currentTarget.style.boxShadow = '0 24px 56px rgba(0,0,0,0.12)';
                                     }
                                 }}
                                 onMouseLeave={e => {
                                     if (!retraining) {
                                         e.currentTarget.style.backgroundColor = 'var(--warning)';
                                         e.currentTarget.style.transform = 'translateY(0)';
-                                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                        e.currentTarget.style.boxShadow = 'var(--card-shadow)';
                                     }
                                 }}
                                 onFocus={e => e.currentTarget.style.outline = '2px solid var(--warning)'}
@@ -592,10 +592,13 @@ export default function AdminPage() {
                     }}>
                         {/* Daily Trend Chart */}
                         <div style={{
-                            backgroundColor: 'var(--bg-white)',
+                            background: 'var(--card-bg)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            border: '1px solid var(--card-border)',
                             borderRadius: 'var(--radius-lg)',
                             padding: '24px',
-                            boxShadow: 'var(--shadow-sm)',
+                            boxShadow: 'var(--card-shadow)',
                         }}>
                             <h3 style={{
                                 fontSize: '1rem',
@@ -642,10 +645,13 @@ export default function AdminPage() {
 
                         {/* Classification Split Pie Chart */}
                         <div style={{
-                            backgroundColor: 'var(--bg-white)',
+                            background: 'var(--card-bg)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            border: '1px solid var(--card-border)',
                             borderRadius: 'var(--radius-lg)',
                             padding: '24px',
-                            boxShadow: 'var(--shadow-sm)',
+                            boxShadow: 'var(--card-shadow)',
                         }}>
                             <h3 style={{
                                 fontSize: '1rem',
@@ -699,10 +705,13 @@ export default function AdminPage() {
                     }}>
                         {/* Model Comparison Chart */}
                         <div style={{
-                            backgroundColor: 'var(--bg-white)',
+                            background: 'var(--card-bg)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            border: '1px solid var(--card-border)',
                             borderRadius: 'var(--radius-lg)',
                             padding: '24px',
-                            boxShadow: 'var(--shadow-sm)',
+                            boxShadow: 'var(--card-shadow)',
                         }}>
                             <h3 style={{
                                 fontSize: '1rem',
@@ -750,10 +759,13 @@ export default function AdminPage() {
 
                         {/* Confidence Distribution Chart */}
                         <div style={{
-                            backgroundColor: 'var(--bg-white)',
+                            background: 'var(--card-bg)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            border: '1px solid var(--card-border)',
                             borderRadius: 'var(--radius-lg)',
                             padding: '24px',
-                            boxShadow: 'var(--shadow-sm)',
+                            boxShadow: 'var(--card-shadow)',
                         }}>
                             <h3 style={{
                                 fontSize: '1rem',
@@ -804,10 +816,13 @@ export default function AdminPage() {
 
                     {/* RECENT PREDICTIONS TABLE */}
                     <div style={{
-                        backgroundColor: 'var(--bg-white)',
+                        background: 'var(--card-bg)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid var(--card-border)',
                         borderRadius: 'var(--radius-lg)',
                         padding: '24px',
-                        boxShadow: 'var(--shadow-sm)',
+                        boxShadow: 'var(--card-shadow)',
                     }}>
                         <h3 style={{
                             fontSize: '1rem',

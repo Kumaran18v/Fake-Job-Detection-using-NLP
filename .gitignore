@@ -10,6 +10,7 @@ build/
 *.sqlite3
 .env
 venv/
+.venv/
 env/
 
 # ── Node / Frontend ──

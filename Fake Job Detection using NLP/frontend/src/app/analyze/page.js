@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { FileText, Link2, Table, Image, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 /* ─── Utility: format ISO date ─── */
 function formatLocalTime(isoString) {
@@ -223,48 +224,48 @@ export default function AnalyzePage() {
     };
 
     return (
-        <div style={{ minHeight: '100vh', paddingTop: 80, background: 'var(--bg-primary)' }}>
+        <div className="analyze-page" style={{ minHeight: '100vh', paddingTop: 80 }}>
             {/* ═══════════════ INPUT PHASE ═══════════════ */}
             {phase === 'input' && (
-                <div style={{ maxWidth: 800, margin: '0 auto', padding: '60px 40px' }}>
-                    <div className="mono" style={{ color: 'var(--danger)', marginBottom: 16 }}>■ ANALYSIS MODULE</div>
+                <div className="analyze-surface" style={{ maxWidth: 800, margin: '0 auto', padding: '60px 40px' }}>
+
+                    {/* ─── Hero Section ─── */}
+                    <div className="analyze-chip" style={{ marginBottom: 20 }}>
+                        <span className="pulse-dot" />
+                        ANALYSIS MODULE — ENGINE ACTIVE
+                    </div>
                     <h1 style={{
                         fontFamily: 'var(--font-display)', fontSize: 'clamp(2.5rem, 6vw, 4rem)',
-                        color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12,
+                        color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 16,
                     }}>
-                        SCAN ANY<br />JOB POST.
+                        SCAN ANY<br />JOB POST<span style={{ color: '#1D4ED8' }}>.</span>
                     </h1>
                     <p style={{
-                        fontFamily: 'var(--font-body)', fontWeight: 300, fontSize: '0.95rem',
-                        color: 'var(--text-muted)', marginBottom: 32, maxWidth: 500, lineHeight: 1.5,
+                        fontFamily: 'var(--font-body)', fontWeight: 400, fontSize: '0.95rem',
+                        color: 'var(--text-muted)', marginBottom: 36, maxWidth: 520, lineHeight: 1.6,
                     }}>
                         Paste text, enter a URL, or upload a CSV for batch analysis. Our NLP engine scans for scam patterns, deceptive language, and structural red flags.
                         {!user && (
-                            <span style={{ display: 'block', marginTop: 8, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                                <a href="/login" style={{ color: 'var(--success)', textDecoration: 'none', borderBottom: '1px solid var(--success)' }}>Sign in</a> to save history and use bulk analysis.
+                            <span style={{ display: 'block', marginTop: 10, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                                <a href="/login" style={{ color: '#10B981', textDecoration: 'none', borderBottom: '1px solid #10B981' }}>Sign in</a> to save history and use bulk analysis.
                             </span>
                         )}
                     </p>
 
                     {/* ─── Input Mode Tabs ─── */}
-                    <div style={{ display: 'flex', gap: 0, marginBottom: 24, border: '1px solid var(--border)', width: 'fit-content' }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
                         {[
-                            { key: 'text', label: '✎ TEXT' },
-                            { key: 'url', label: '🔗 URL' },
-                            { key: 'csv', label: '📊 CSV' },
-                            { key: 'image', label: '📷 IMAGE' },
+                            { key: 'text', label: 'TEXT', Icon: FileText },
+                            { key: 'url', label: 'URL', Icon: Link2 },
+                            { key: 'csv', label: 'CSV', Icon: Table },
+                            { key: 'image', label: 'IMAGE', Icon: Image },
                         ].map(tab => (
                             <button
                                 key={tab.key}
                                 onClick={() => setInputMode(tab.key)}
-                                className="mono"
-                                style={{
-                                    padding: '10px 20px', fontSize: '0.65rem', letterSpacing: '0.08em',
-                                    background: inputMode === tab.key ? 'var(--border)' : 'transparent',
-                                    color: inputMode === tab.key ? 'var(--text-primary)' : 'var(--text-muted)',
-                                    border: 'none', cursor: 'pointer', transition: 'all 0.2s',
-                                }}
+                                className={`analyze-tab${inputMode === tab.key ? ' active' : ''}`}
                             >
+                                <tab.Icon size={14} strokeWidth={2} />
                                 {tab.label}
                             </button>
                         ))}
@@ -273,29 +274,34 @@ export default function AnalyzePage() {
                     {/* ─── TEXT INPUT ─── */}
                     {inputMode === 'text' && (
                         <>
-                            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-                                {SAMPLE_TEXTS.map(({ label, text }) => (
-                                    <button key={label} onClick={() => setJobText(text)} className="btn-outline" style={{ fontSize: '0.7rem', padding: '8px 14px' }}>
-                                        ↓ {label}
-                                    </button>
-                                ))}
+                            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                                {SAMPLE_TEXTS.map(({ label, text }) => {
+                                    const isSuspicious = label.includes('SUSPICIOUS');
+                                    return (
+                                        <button
+                                            key={label}
+                                            onClick={() => setJobText(text)}
+                                            className={`analyze-sample-btn ${isSuspicious ? 'suspicious' : 'legit'}`}
+                                        >
+                                            {isSuspicious
+                                                ? <AlertTriangle size={13} strokeWidth={2.5} />
+                                                : <CheckCircle2 size={13} strokeWidth={2.5} />
+                                            }
+                                            {label}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                            <textarea
-                                ref={textareaRef} value={jobText} onChange={e => setJobText(e.target.value)}
-                                placeholder="Paste job description here..."
-                                style={{
-                                    width: '100%', minHeight: 260, resize: 'vertical', padding: '20px',
-                                    background: 'var(--bg-white)', border: '1px solid var(--border)',
-                                    color: 'var(--text-primary)', fontFamily: 'var(--font-body)',
-                                    fontSize: '0.95rem', lineHeight: 1.7, outline: 'none', transition: 'border-color 0.2s',
-                                }}
-                                onFocus={e => e.target.style.borderColor = 'var(--text-muted)'}
-                                onBlur={e => e.target.style.borderColor = 'var(--border)'}
-                            />
+                            <div className={`analyze-textarea-wrap${jobText ? ' has-text' : ''}`}>
+                                <textarea
+                                    ref={textareaRef} value={jobText} onChange={e => setJobText(e.target.value)}
+                                    placeholder="Paste job description here..."
+                                />
+                            </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
                                 <span className="mono" style={{ fontSize: '0.65rem' }}>{jobText.length} CHARACTERS</span>
-                                <button onClick={analyze} className="btn-primary" disabled={!jobText.trim() || loading} style={{ minWidth: 200 }}>
-                                    RUN ANALYSIS
+                                <button onClick={analyze} className="btn-primary" disabled={!jobText.trim() || loading} style={{ minWidth: 220, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                    ANALYZE POST <ArrowRight size={15} strokeWidth={2.5} />
                                 </button>
                             </div>
                         </>
@@ -313,24 +319,23 @@ export default function AnalyzePage() {
                                     placeholder="https://www.linkedin.com/jobs/view/..."
                                     style={{
                                         flex: 1, padding: '16px 20px', background: 'var(--bg-white)',
-                                        border: '1px solid var(--border)', color: 'var(--text-primary)',
-                                        fontFamily: 'var(--font-mono)', fontSize: '0.85rem', outline: 'none',
+                                        border: '1.5px solid var(--border)', borderRadius: '12px',
+                                        color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+                                        fontSize: '0.85rem', outline: 'none',
                                     }}
-                                    onFocus={e => e.target.style.borderColor = 'var(--text-muted)'}
-                                    onBlur={e => e.target.style.borderColor = 'var(--border)'}
                                     onKeyDown={e => e.key === 'Enter' && analyze()}
                                 />
-                                <button onClick={analyze} className="btn-primary" disabled={!urlInput.trim() || loading} style={{ minWidth: 160 }}>
-                                    SCAN URL
+                                <button onClick={analyze} className="btn-primary" disabled={!urlInput.trim() || loading} style={{ minWidth: 160, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                    SCAN URL <ArrowRight size={15} strokeWidth={2.5} />
                                 </button>
                             </div>
                             <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
                                 {['LinkedIn', 'Indeed', 'Naukri', 'Glassdoor'].map(site => (
-                                    <span key={site} className="mono" style={{ fontSize: '0.55rem', padding: '4px 10px', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                                    <span key={site} className="mono" style={{ fontSize: '0.55rem', padding: '4px 10px', border: '1px solid var(--border)', borderRadius: '100px', color: 'var(--text-muted)' }}>
                                         {site.toUpperCase()}
                                     </span>
                                 ))}
-                                <span className="mono" style={{ fontSize: '0.55rem', padding: '4px 10px', color: 'var(--text-secondary)' }}>+ ANY JOB SITE</span>
+                                <span className="mono" style={{ fontSize: '0.55rem', padding: '4px 10px', color: 'var(--text-muted)' }}>+ ANY JOB SITE</span>
                             </div>
                         </div>
                     )}
@@ -339,9 +344,9 @@ export default function AnalyzePage() {
                     {inputMode === 'csv' && (
                         <div>
                             {!token && (
-                                <div style={{ padding: '16px 20px', border: '1px solid var(--danger)', background: 'var(--red-glow)', marginBottom: 20 }}>
-                                    <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--danger)' }}>
-                                        ⚠ You must <a href="/login" style={{ color: 'var(--success)', textDecoration: 'underline' }}>sign in</a> to use bulk analysis.
+                                <div style={{ padding: '14px 20px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)', borderRadius: 10, marginBottom: 20 }}>
+                                    <span className="mono" style={{ fontSize: '0.7rem', color: '#EF4444' }}>
+                                        ⚠ You must <a href="/login" style={{ color: '#10B981', textDecoration: 'underline' }}>sign in</a> to use bulk analysis.
                                     </span>
                                 </div>
                             )}
@@ -350,10 +355,11 @@ export default function AnalyzePage() {
                                 onDragLeave={() => setDragOver(false)}
                                 onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f?.name.endsWith('.csv')) setCsvFile(f); }}
                                 onClick={() => document.getElementById('csvInput')?.click()}
+                                className="analyze-dropzone"
                                 style={{
-                                    border: `2px dashed ${dragOver ? 'var(--success)' : 'var(--border)'}`,
-                                    background: dragOver ? 'var(--teal-glow)' : 'var(--bg-white)',
-                                    padding: '60px 40px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s',
+                                    border: `2px dashed ${dragOver ? '#10B981' : 'var(--border)'}`,
+                                    background: dragOver ? 'rgba(16,185,129,0.05)' : 'var(--bg-white)',
+                                    padding: '60px 40px', textAlign: 'center', cursor: 'pointer',
                                 }}
                             >
                                 <input id="csvInput" type="file" accept=".csv" style={{ display: 'none' }}
@@ -378,8 +384,8 @@ export default function AnalyzePage() {
                             </div>
                             {csvFile && (
                                 <button onClick={analyzeBulk} className="btn-primary" disabled={loading || !token}
-                                    style={{ width: '100%', padding: '16px', fontSize: '0.85rem', marginTop: 16 }}>
-                                    {loading ? '● ANALYZING...' : `ANALYZE ${csvFile.name.toUpperCase()}`}
+                                    style={{ width: '100%', padding: '16px', fontSize: '0.85rem', marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                    {loading ? '● ANALYZING...' : <>{`ANALYZE ${csvFile.name.toUpperCase()}`} <ArrowRight size={15} /></>}
                                 </button>
                             )}
                         </div>
@@ -393,9 +399,11 @@ export default function AnalyzePage() {
                             </p>
                             <div
                                 onClick={() => document.getElementById('imageInput')?.click()}
+                                className="analyze-dropzone"
                                 style={{
-                                    border: `2px dashed var(--border)`, background: 'var(--bg-white)',
-                                    padding: imagePreview ? '20px' : '60px 40px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s',
+                                    border: '2px dashed var(--border)', background: 'var(--bg-white)',
+                                    padding: imagePreview ? '20px' : '60px 40px',
+                                    textAlign: 'center', cursor: 'pointer',
                                 }}
                             >
                                 <input id="imageInput" type="file" accept="image/*" style={{ display: 'none' }}
@@ -428,8 +436,8 @@ export default function AnalyzePage() {
                             </div>
                             {imageFile && (
                                 <button onClick={analyzeImage} className="btn-primary" disabled={loading}
-                                    style={{ width: '100%', padding: '16px', fontSize: '0.85rem', marginTop: 16 }}>
-                                    {loading ? '● EXTRACTING TEXT...' : 'ANALYZE SCREENSHOT'}
+                                    style={{ width: '100%', padding: '16px', fontSize: '0.85rem', marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                                    {loading ? '● EXTRACTING TEXT...' : <>ANALYZE SCREENSHOT <ArrowRight size={15} /></>}
                                 </button>
                             )}
                         </div>
@@ -448,7 +456,7 @@ export default function AnalyzePage() {
                                 </span>
                             </div>
                             {showHistory && (
-                                <div style={{ background: 'var(--bg-white)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+                                <div style={{ background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 70px 120px', borderBottom: '1px solid var(--border)', padding: '10px 16px' }}>
                                         {['JOB TEXT', 'VERDICT', 'CONF.', 'TIME'].map(h => (
                                             <div key={h} className="mono" style={{ fontSize: '0.5rem', letterSpacing: '0.1em' }}>{h}</div>
@@ -627,9 +635,12 @@ export default function AnalyzePage() {
                         {!result.scraped_company && (
                             <div style={{ width: '100%', maxWidth: 550, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
                                 <input placeholder="Enter company name to verify..." id="companyInput" style={{
-                                    flex: 1, padding: '10px 14px', background: 'var(--bg-white)', border: '1px solid var(--border)',
-                                    color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', fontSize: '0.75rem', outline: 'none',
-                                }} onKeyDown={e => { if (e.key === 'Enter') verifyCompany(e.target.value); }} />
+                                    flex: 1, padding: '10px 14px', background: 'var(--bg-white)', border: '1.5px solid var(--border)',
+                                    borderRadius: '10px', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)',
+                                    fontSize: '0.75rem', outline: 'none', transition: 'all 0.2s',
+                                }} onFocus={e => { e.target.style.borderColor = '#0d9488'; e.target.style.boxShadow = '0 0 0 3px rgba(13,148,136,0.15)'; }}
+                                   onBlur={e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; }}
+                                   onKeyDown={e => { if (e.key === 'Enter') verifyCompany(e.target.value); }} />
                                 <button className="btn-outline" style={{ fontSize: '0.6rem', padding: '10px 16px' }} disabled={companyLoading}
                                     onClick={() => { const inp = document.getElementById('companyInput'); if (inp?.value) verifyCompany(inp.value); }}>
                                     {companyLoading ? '...' : '✓ VERIFY'}
@@ -741,7 +752,7 @@ export default function AnalyzePage() {
 
             {/* ═══════════════ BULK RESULTS PHASE ═══════════════ */}
             {phase === 'bulk-results' && bulkResults && (
-                <div style={{ maxWidth: 900, margin: '0 auto', padding: '60px 40px' }}>
+                <div className="analyze-surface" style={{ maxWidth: 900, margin: '0 auto', padding: '60px 40px' }}>
                     <div className="mono" style={{ color: 'var(--danger)', marginBottom: 16 }}>■ BULK ANALYSIS REPORT</div>
                     <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(2rem, 5vw, 3rem)', color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 32 }}>
                         BATCH COMPLETE.

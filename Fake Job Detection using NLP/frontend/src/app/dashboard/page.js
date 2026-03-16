@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function DashboardPage() {
     const { user, authFetch } = useAuth();
@@ -28,8 +27,8 @@ export default function DashboardPage() {
         setError(null);
         try {
             const [statsRes, trendRes] = await Promise.all([
-                authFetch(`${API_BASE}/api/my-stats`),
-                authFetch(`${API_BASE}/api/trending`)
+                authFetch('/api/my-stats'),
+                authFetch('/api/trending')
             ]);
 
             if (statsRes.ok) {
@@ -60,7 +59,6 @@ export default function DashboardPage() {
             <div style={{
                 minHeight: '100vh',
                 paddingTop: '80px',
-                background: 'var(--bg-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -92,7 +90,6 @@ export default function DashboardPage() {
             <div style={{
                 minHeight: '100vh',
                 paddingTop: '80px',
-                background: 'var(--bg-primary)',
                 padding: '80px 20px 40px'
             }}>
                 <div style={{
@@ -145,10 +142,7 @@ export default function DashboardPage() {
     const agreementRate = stats?.agreement_rate || 0;
 
     return (
-        <div style={{
-            minHeight: '100vh',
-            paddingTop: '80px',
-            background: 'var(--bg-primary)',
+        <div className="premium-page" style={{
             fontFamily: 'var(--font-body)'
         }}>
             <div style={{
@@ -187,15 +181,17 @@ export default function DashboardPage() {
                 }}>
                     {/* Total Analyses */}
                     <div style={{
-                        background: 'var(--bg-white)',
-                        border: '1px solid var(--border)',
+                        background: 'var(--card-bg)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid var(--card-border)',
                         borderRadius: 'var(--radius-lg)',
                         padding: '20px',
-                        boxShadow: 'var(--shadow-sm)',
-                        transition: 'box-shadow 0.2s'
+                        boxShadow: 'var(--card-shadow)',
+                        transition: 'transform 0.25s ease, box-shadow 0.25s ease'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
-                    onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}>
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 24px 56px rgba(0,0,0,0.12)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--card-shadow)'; }}>
                         <div style={{
                             width: '48px',
                             height: '48px',
@@ -236,15 +232,17 @@ export default function DashboardPage() {
 
                     {/* Fraudulent */}
                     <div style={{
-                        background: 'var(--bg-white)',
-                        border: '1px solid var(--border)',
+                        background: 'var(--card-bg)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid var(--card-border)',
                         borderRadius: 'var(--radius-lg)',
                         padding: '20px',
-                        boxShadow: 'var(--shadow-sm)',
-                        transition: 'box-shadow 0.2s'
+                        boxShadow: 'var(--card-shadow)',
+                        transition: 'transform 0.25s ease, box-shadow 0.25s ease'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
-                    onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}>
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 24px 56px rgba(0,0,0,0.12)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--card-shadow)'; }}>
                         <div style={{
                             width: '48px',
                             height: '48px',
@@ -284,15 +282,17 @@ export default function DashboardPage() {
 
                     {/* Legitimate */}
                     <div style={{
-                        background: 'var(--bg-white)',
-                        border: '1px solid var(--border)',
+                        background: 'var(--card-bg)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid var(--card-border)',
                         borderRadius: 'var(--radius-lg)',
                         padding: '20px',
-                        boxShadow: 'var(--shadow-sm)',
-                        transition: 'box-shadow 0.2s'
+                        boxShadow: 'var(--card-shadow)',
+                        transition: 'transform 0.25s ease, box-shadow 0.25s ease'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
-                    onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}>
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 24px 56px rgba(0,0,0,0.12)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--card-shadow)'; }}>
                         <div style={{
                             width: '48px',
                             height: '48px',
@@ -331,15 +331,17 @@ export default function DashboardPage() {
 
                     {/* Fraud Rate */}
                     <div style={{
-                        background: 'var(--bg-white)',
-                        border: '1px solid var(--border)',
+                        background: 'var(--card-bg)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid var(--card-border)',
                         borderRadius: 'var(--radius-lg)',
                         padding: '20px',
-                        boxShadow: 'var(--shadow-sm)',
-                        transition: 'box-shadow 0.2s'
+                        boxShadow: 'var(--card-shadow)',
+                        transition: 'transform 0.25s ease, box-shadow 0.25s ease'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
-                    onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}>
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 24px 56px rgba(0,0,0,0.12)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'var(--card-shadow)'; }}>
                         <div style={{
                             width: '48px',
                             height: '48px',
@@ -473,11 +475,13 @@ export default function DashboardPage() {
                 {/* Weekly Trend Chart */}
                 {stats?.weekly_trend && stats.weekly_trend.length > 0 && (
                     <div style={{
-                        background: 'var(--bg-white)',
-                        border: '1px solid var(--border)',
+                        background: 'var(--card-bg)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid var(--card-border)',
                         borderRadius: 'var(--radius-lg)',
                         padding: '24px',
-                        boxShadow: 'var(--shadow-sm)',
+                        boxShadow: 'var(--card-shadow)',
                         marginBottom: '32px'
                     }}>
                         <h2 style={{
@@ -528,11 +532,13 @@ export default function DashboardPage() {
                 {/* Recent Predictions Table */}
                 {stats?.recent && stats.recent.length > 0 && (
                     <div style={{
-                        background: 'var(--bg-white)',
-                        border: '1px solid var(--border)',
+                        background: 'var(--card-bg)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid var(--card-border)',
                         borderRadius: 'var(--radius-lg)',
                         padding: '24px',
-                        boxShadow: 'var(--shadow-sm)',
+                        boxShadow: 'var(--card-shadow)',
                         marginBottom: '32px'
                     }}>
                         <h2 style={{
@@ -670,11 +676,13 @@ export default function DashboardPage() {
                 {/* Trending Patterns */}
                 {trending?.patterns && trending.patterns.length > 0 && (
                     <div style={{
-                        background: 'var(--bg-white)',
-                        border: '1px solid var(--border)',
+                        background: 'var(--card-bg)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid var(--card-border)',
                         borderRadius: 'var(--radius-lg)',
                         padding: '24px',
-                        boxShadow: 'var(--shadow-sm)'
+                        boxShadow: 'var(--card-shadow)'
                     }}>
                         <h2 style={{
                             fontFamily: 'var(--font-display)',
@@ -780,7 +788,9 @@ export default function DashboardPage() {
                                             fontSize: '0.8rem',
                                             color: 'var(--text-primary)'
                                         }}>
-                                            {keyword}
+                                            {typeof keyword === 'string'
+                                                ? keyword
+                                                : `${keyword.keyword}${keyword.count ? ` (${keyword.count})` : ''}`}
                                         </span>
                                     ))}
                                 </div>

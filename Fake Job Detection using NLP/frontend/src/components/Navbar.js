@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
     const { user, logout } = useAuth();
+    const { theme, toggle, mounted } = useTheme();
     const [scrolled, setScrolled] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -32,9 +34,10 @@ export default function Navbar() {
             position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
             padding: '0 clamp(16px, 4vw, 40px)', height: 64,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: scrolled ? 'var(--nav-bg)' : 'rgba(255,255,255,0.8)',
-            backdropFilter: 'blur(12px)',
-            borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
+            background: 'var(--nav-bg)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            borderBottom: '1px solid var(--nav-border)',
             transition: 'all 0.3s ease',
         }}>
             {/* Logo */}
@@ -84,6 +87,24 @@ export default function Navbar() {
                 ))}
 
                 <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 8px' }} />
+                <button
+                    onClick={toggle}
+                    style={{
+                        fontFamily: 'var(--font-body)',
+                        fontSize: '0.85rem',
+                        fontWeight: 500,
+                        color: 'var(--text-secondary)',
+                        background: 'var(--bg-subtle)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                    }}
+                    aria-label="Toggle dark mode"
+                >
+                    {mounted ? (theme === 'dark' ? 'Light Mode' : 'Dark Mode') : '\u00A0'}
+                </button>
 
                 {user ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

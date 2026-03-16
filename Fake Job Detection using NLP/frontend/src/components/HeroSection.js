@@ -87,7 +87,7 @@ function HeroDoodle() {
         animate={prefersReducedMotion ? {} : { y: [0, -4, 0] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       >
-        <rect x="100" y="80" width="130" height="170" rx="10" fill="white" stroke="var(--border)" strokeWidth="2" />
+        <rect x="100" y="80" width="130" height="170" rx="10" fill="var(--bg-white)" stroke="var(--border)" strokeWidth="2" />
         <rect x="118" y="108" width="80" height="6" rx="3" fill="var(--bg-muted)" />
         <rect x="118" y="124" width="60" height="6" rx="3" fill="var(--bg-muted)" />
         <rect x="118" y="140" width="90" height="6" rx="3" fill="var(--bg-muted)" />
